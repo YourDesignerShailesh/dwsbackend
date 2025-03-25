@@ -1,3 +1,5 @@
+require('dotenv').config(); // Load environment variables from .env file
+
 const express = require('express');
 const cors = require('cors'); // added dependency for enabling CORS
 const mongoose = require('mongoose'); // added dependency for MongoDB
@@ -10,10 +12,27 @@ app.use(cors()); // enable CORS for all routes
 app.use(express.json()); // added middleware for JSON parsing
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mydb';
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+const MONGODB_URI = process.env.MONGODB_URI ; // Fallback to local MongoDB
+
+// Enable Mongoose debugging
+mongoose.set('debug', true);
+
+// MongoDB connection with enhanced error handling
+mongoose.connect(MONGODB_URI, { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true, 
+    serverSelectionTimeoutMS: 30000 // added timeout option to avoid ETIMEOUT errors
+  })
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Could not connect to MongoDB', err));
+  .catch(err => {
+    console.error('Could not connect to MongoDB:', err.message);
+    process.exit(1); // Exit the process if the connection fails
+  });
+
+// Log connection errors after initial connection
+mongoose.connection.on('error', err => {
+  console.error('MongoDB connection error:', err.message);
+});
 
 // Basic route
 app.get('/', (req, res) => {
